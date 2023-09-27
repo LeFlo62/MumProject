@@ -29,5 +29,20 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
+
+        Button buttonText = findViewById(R.id.textButton);
+        buttonText.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String phoneNumber = "0625122512";
+                String message = "Shrek, I miss you so much </3.";
+
+                Intent intent = new Intent(Intent.ACTION_SENDTO);
+                intent.setData(Uri.parse("smsto:" + phoneNumber));
+                intent.putExtra("sms_body", message);
+
+                startActivity(intent);
+            }
+        });
     }
 }
