@@ -1,28 +1,35 @@
 package fr.isep.mobiledev.mumproject;
 
-import androidx.appcompat.app.AppCompatActivity;
-
-import android.content.res.TypedArray;
 import android.content.Intent;
-import android.graphics.drawable.Drawable;
+import android.content.SharedPreferences;
+import android.content.res.TypedArray;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.WindowManager;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
-import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 
+import androidx.appcompat.app.AppCompatActivity;
+
+import java.io.File;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class MainActivity extends AppCompatActivity {
 
-    private TypedArray images;
+    private String[] images;
     private List<Integer> imageOrder;
     private int imageIndex;
 
@@ -31,39 +38,15 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Button buttonCall = findViewById(R.id.callButton);
-        buttonCall.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(Intent.ACTION_DIAL);
-                intent.setData(Uri.parse("tel:+33422521010"));
-                startActivity(intent);
-            }
-        });
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        Button buttonText = findViewById(R.id.textButton);
-        buttonText.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String phoneNumber = "0625122512";
-                String message = "Shrek, I miss you so much </3.";
-
-                Intent intent = new Intent(Intent.ACTION_SENDTO);
-                intent.setData(Uri.parse("smsto:" + phoneNumber));
-                intent.putExtra("sms_body", message);
-
-                startActivity(intent);
-            }
+        ImageButton buttonParameters = findViewById(R.id.parametersButton);
+        buttonParameters.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, ParametersActivity.class);
+            startActivity(intent);
         });
 
         ImageView imageView = findViewById(R.id.imageView);
-        imageView.setImageResource(R.drawable.placeholder_1);
-
-        images = getResources().obtainTypedArray(R.array.mum_images);
-        imageOrder = IntStream.rangeClosed(0, images.length()-1).boxed().collect(Collectors.toList());
-        Collections.shuffle(imageOrder);
-
-        imageView.setImageResource(getRandomImage());
 
         Animation fadeIn = AnimationUtils.loadAnimation(this, R.anim.fadein);
         Animation fadeOut = AnimationUtils.loadAnimation(this, R.anim.fadeout);
@@ -92,7 +75,9 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onAnimationEnd(Animation animation) {
-                imageView.setImageResource(getRandomImage());
+                if(images != null && images.length != 0){
+                    imageView.setImageURI(getRandomImage());
+                }
                 imageView.startAnimation(fadeIn);
             }
 
@@ -101,11 +86,49 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    public int getRandomImage() {
-        if (imageIndex == images.length()) {
+    @Override
+    protected void onResume() {
+        super.onResume();
+        SharedPreferences preferences = getSharedPreferences("fr.isep.mobiledev.mumproject", MODE_PRIVATE);
+
+        Button buttonCall = findViewById(R.id.callButton);
+        buttonCall.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_DIAL);
+            intent.setData(Uri.parse("tel:" + preferences.getString("phone", "")));
+            startActivity(intent);
+        });
+
+        Button buttonText = findViewById(R.id.textButton);
+        buttonText.setOnClickListener(v -> {
+            String phoneNumber = preferences.getString("phone", "");
+            String message = "Shrek, I miss you so much </3.";
+
+            Intent intent = new Intent(Intent.ACTION_SENDTO);
+            intent.setData(Uri.parse("smsto:" + phoneNumber));
+            intent.putExtra("sms_body", message);
+
+            startActivity(intent);
+        });
+
+        File imagesFolder = new File(getDataDir(), "/images/");
+        if(!imagesFolder.exists()){
+            imagesFolder.mkdirs();
+        }
+        images = Arrays.stream(imagesFolder.listFiles()).map(File::getAbsolutePath).toArray(String[]::new);
+        imageOrder = IntStream.rangeClosed(0, images.length-1).boxed().collect(Collectors.toList());
+        Collections.shuffle(imageOrder);
+
+        ImageView imageView = findViewById(R.id.imageView);
+        if(images != null && images.length != 0){
+            imageView.setImageURI(getRandomImage());
+        }
+    }
+
+    public Uri getRandomImage() {
+        if (imageIndex == images.length) {
             imageIndex = 0;
             Collections.shuffle(imageOrder);
         }
-        return images.getResourceId(imageOrder.get(imageIndex++), R.drawable.ic_launcher_background);
+        return Uri.parse(images[imageOrder.get(imageIndex++)]);
     }
 }
