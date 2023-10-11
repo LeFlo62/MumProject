@@ -101,11 +101,9 @@ public class MainActivity extends AppCompatActivity {
         Button buttonText = findViewById(R.id.textButton);
         buttonText.setOnClickListener(v -> {
             String phoneNumber = preferences.getString("phone", "");
-            String message = "Shrek, I miss you so much </3.";
 
             Intent intent = new Intent(Intent.ACTION_SENDTO);
             intent.setData(Uri.parse("smsto:" + phoneNumber));
-            intent.putExtra("sms_body", message);
 
             startActivity(intent);
         });
